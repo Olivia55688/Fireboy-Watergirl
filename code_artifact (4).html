@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>冰火雙人奇境：元素神殿 (Fireboy & Watergirl)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Noto+Sans+TC:wght@500;700;900&display=swap');
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: radial-gradient(circle at center, #1b2028 0%, #0d1117 100%);
+      user-select: none;
+    }
+    .game-font {
+      font-family: 'Chakra Petch', monospace;
+    }
+    canvas {
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-center p-2 sm:p-4">
+
+  <!-- 頂部資訊列 -->
+  <header class="w-full max-w-[960px] flex items-center justify-between bg-slate-800/90 backdrop-blur border border-slate-700 rounded-xl px-4 py-2.5 mb-3 shadow-lg">
+    <div class="flex items-center space-x-3">
+      <span class="text-xl font-black bg-gradient-to-r from-amber-400 via-rose-500 to-cyan-400 bg-clip-text text-transparent">
+        🔥 元素神殿 💧
+      </span>
+      <span id="levelBadge" class="bg-slate-700/80 text-xs px-2.5 py-1 rounded-full font-bold text-amber-300 border border-slate-600">
+        關卡 1
+      </span>
+    </div>
+
+    <div class="flex items-center space-x-6 text-sm">
+      <div class="flex items-center space-x-1.5">
+        <span class="text-slate-400 font-medium">⏱ 時間:</span>
+        <span id="timerDisplay" class="game-font font-bold text-emerald-400 text-base">00:00.0</span>
+      </div>
+      <div class="flex items-center space-x-3 text-xs">
+        <span class="flex items-center gap-1 text-rose-400 font-bold">
+          💎 <span id="fireGemCount">0</span>/<span id="fireGemTotal">0</span>
+        </span>
+        <span class="flex items-center gap-1 text-cyan-400 font-bold">
+          💎 <span id="waterGemCount">0</span>/<span id="waterGemTotal">0</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <button id="btnRules" class="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-xs font-bold transition flex items-center gap-1 border border-amber-400 active:scale-95 text-slate-950">
+        📜 規則
+      </button>
+      <button id="btnRestart" class="px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs font-bold transition flex items-center gap-1 border border-slate-600 active:scale-95">
+        🔄 重開 (R)
+      </button>
+      <button id="btnLevelSelect" class="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-bold transition border border-indigo-400 active:scale-95">
+        關卡一覽
+      </button>
+    </div>
+  </header>
+
+  <!-- 遊戲畫布視窗 -->
+  <main class="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-700/80 bg-slate-950 flex items-center justify-center">
+    <canvas id="gameCanvas" width="960" height="600" class="block"></canvas>
+
+    <div class="absolute bottom-2 left-2 flex gap-4 pointer-events-none text-[11px] bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10">
+      <div class="text-rose-400 font-semibold flex items-center gap-1">
+        <span>🔥 火人:</span>
+        <kbd class="bg-rose-950/80 px-1 border border-rose-600 rounded">A</kbd>
+        <kbd class="bg-rose-950/80 px-1 border border-rose-600 rounded">D</kbd> 移動
+        <kbd class="bg-rose-950/80 px-1 border border-rose-600 rounded">W</kbd> 跳
+      </div>
+      <div class="text-cyan-400 font-semibold flex items-center gap-1">
+        <span>💧 冰人:</span>
+        <kbd class="bg-cyan-950/80 px-1 border border-cyan-600 rounded">←</kbd>
+        <kbd class="bg-cyan-950/80 px-1 border border-cyan-600 rounded">→</kbd> 移動
+        <kbd class="bg-cyan-950/80 px-1 border border-cyan-600 rounded">↑</kbd> 跳
+      </div>
+    </div>
+
+    <!-- 遊戲規則視窗 -->
+    <div id="rulesModal" class="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center z-40 p-4">
+      <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-6 max-w-lg w-full shadow-2xl text-slate-200">
+        <div class="text-center mb-4">
+          <div class="text-3xl mb-1">🔥 🏛️ 💧</div>
+          <h2 class="text-2xl font-black text-amber-400">神殿冒險指南 & 遊戲規則</h2>
+          <p class="text-xs text-slate-400 mt-1">默契配合，一同解鎖古老元素神殿的秘密！</p>
+        </div>
+
+        <div class="space-y-3.5 text-xs text-slate-300">
+          <div class="bg-slate-800/90 border border-slate-700 p-3 rounded-xl">
+            <h3 class="font-bold text-amber-300 mb-2 flex items-center gap-1.5 text-sm">
+              <span>🎮</span> 雙人操作方式
+            </h3>
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-rose-900/40">
+                <span class="text-rose-400 font-bold block mb-1">🔥 火人 (Fireboy)</span>
+                <span class="text-slate-300">按鍵：<kbd class="bg-slate-800 px-1 border border-slate-600 rounded">A</kbd> 左 / <kbd class="bg-slate-800 px-1 border border-slate-600 rounded">D</kbd> 右<br>跳躍：<kbd class="bg-slate-800 px-1 border border-slate-600 rounded">W</kbd></span>
+              </div>
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-cyan-900/40">
+                <span class="text-cyan-400 font-bold block mb-1">💧 冰人 (Watergirl)</span>
+                <span class="text-slate-300">按鍵：<kbd class="bg-slate-800 px-1 border border-slate-600 rounded">←</kbd> 左 / <kbd class="bg-slate-800 px-1 border border-slate-600 rounded">→</kbd> 右<br>跳躍：<kbd class="bg-slate-800 px-1 border border-slate-600 rounded">↑</kbd></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-800/90 border border-slate-700 p-3 rounded-xl space-y-2">
+            <h3 class="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
+              <span>⚠️</span> 元素法則與機關
+            </h3>
+            <ul class="space-y-1.5 list-disc list-inside text-slate-300">
+              <li><span class="text-rose-400 font-semibold">岩漿池</span>：火人免疫，<span class="text-cyan-300">冰人碰到立即蒸發</span>。</li>
+              <li><span class="text-cyan-400 font-semibold">湖水池</span>：冰人免疫，<span class="text-rose-300">火人碰到立即熄滅</span>。</li>
+              <li><span class="text-emerald-400 font-semibold">劇毒池</span>：雙方碰觸皆會陣亡！</li>
+              <li><span class="text-yellow-400 font-semibold">第一關機關壓板</span>：踩住按鈕時屏障會開啟，穿過屏障右側可取得對應的元素鑽石。</li>
+              <li><span class="text-yellow-400 font-semibold">第三關天橋機關</span>：踩下按鈕後，伸縮板子將平穩升起在 Y:9 高度，形成通往頂部大門的直通天橋！</li>
+            </ul>
+          </div>
+
+          <div class="bg-amber-950/30 border border-amber-500/30 p-2.5 rounded-xl flex items-center gap-3">
+            <span class="text-2xl">🚪</span>
+            <div>
+              <span class="font-bold text-amber-300">通關目標：</span>
+              <span>收集寶石，兩位夥伴同時抵達終點大門，門扉敞開後步入大殿即可通關！</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btnStartGame" class="mt-5 w-full py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-black rounded-xl text-sm transition active:scale-95 shadow-lg shadow-amber-900/30">
+          我準備好了，開始冒險！ ➔
+        </button>
+      </div>
+    </div>
+
+    <!-- 死亡通知 -->
+    <div id="deathModal" class="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center hidden z-20">
+      <div class="bg-slate-900 border-2 border-rose-500/80 rounded-2xl p-6 text-center max-w-sm shadow-2xl">
+        <h2 id="deathReasonTitle" class="text-2xl font-black text-rose-500 mb-2">角色陣亡！</h2>
+        <p id="deathReasonText" class="text-sm text-slate-300 mb-5">請避開不相容的元素池與致命液體。</p>
+        <button id="btnDeathRetry" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg transition active:scale-95 shadow-lg shadow-rose-900/50">
+          重新挑戰 (R)
+        </button>
+      </div>
+    </div>
+
+    <!-- 過關結算 -->
+    <div id="clearModal" class="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center hidden z-20">
+      <div class="bg-slate-900 border-2 border-amber-400/80 rounded-2xl p-6 text-center max-w-md w-full shadow-2xl">
+        <span class="text-4xl block mb-1">🏆</span>
+        <h2 class="text-3xl font-black text-amber-400 mb-1">關卡完美通關！</h2>
+        <p class="text-xs text-slate-400 mb-4">元素神殿門已敞開，冒險者成功步入神聖大殿</p>
+
+        <div class="bg-slate-800/80 rounded-xl p-3 mb-4 space-y-2 text-sm border border-slate-700">
+          <div class="flex justify-between">
+            <span class="text-slate-400">通關時間</span>
+            <span id="clearTimeStat" class="game-font font-bold text-emerald-400 text-base">00:00.0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">寶石收集率</span>
+            <span id="clearGemsStat" class="font-bold text-amber-300">0 / 0</span>
+          </div>
+          <div class="flex justify-between items-center border-t border-slate-700/60 pt-2">
+            <span class="text-slate-400">關卡評級</span>
+            <span id="clearRankStat" class="game-font text-2xl font-extrabold text-yellow-400">S</span>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btnClearReplay" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 font-bold rounded-lg transition text-sm">
+            重玩本關
+          </button>
+          <button id="btnNextLevel" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition text-sm shadow-lg shadow-emerald-900/40">
+            下一關卡 ➔
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 選關面板 -->
+    <div id="levelModal" class="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center hidden z-30 p-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-xl w-full shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-black text-slate-100 flex items-center gap-2">
+            <span>🗺</span> 冒險歷程記錄
+          </h2>
+          <button id="btnCloseLevelModal" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+        </div>
+
+        <div id="levelCardList" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5"></div>
+
+        <div class="flex justify-between items-center text-xs text-slate-500 border-t border-slate-800 pt-3">
+          <span>進度自動儲存於瀏覽器 LocalStorage</span>
+          <button id="btnResetAllSaves" class="text-rose-400 hover:text-rose-300 underline font-semibold">
+            清空所有進度
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 訊息提示 -->
+    <div id="gameNoticeModal" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center hidden z-50 p-4">
+      <div class="bg-slate-900 border border-amber-500/60 rounded-xl p-5 max-w-sm w-full text-center shadow-2xl">
+        <h3 id="noticeTitle" class="text-lg font-bold text-amber-400 mb-2">通知</h3>
+        <p id="noticeMsg" class="text-xs text-slate-300 mb-4"></p>
+        <div class="flex justify-center gap-2" id="noticeButtons">
+          <button id="btnNoticeOk" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition">
+            確定
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="mt-3 text-xs text-slate-500 flex items-center gap-2">
+    <span>💡 提示：第三關按鈕出現的伸縮天橋高度已調升至 Y:9，並優化了中繼落差，跳躍更加順手自如！</span>
+  </footer>
+
+  <script>
+    /* ==========================================================================
+       1. 常量與存檔
+       ========================================================================== */
+    const STORAGE_KEY = 'FIREBOY_WATERGIRL_SAVE_V7';
+    const TILE_SIZE = 32;
+    const CANVAS_WIDTH = 960;
+    const CANVAS_HEIGHT = 600;
+    const FIXED_DELTA = 1 / 60;
+
+    const T = {
+      EMPTY: 0,
+      WALL: 1,
+      FIRE_LAKE: 2,
+      WATER_LAKE: 3,
+      SLIME_LAKE: 4,
+      DOOR_FIRE: 5,
+      DOOR_WATER: 6,
+      FIRE_GEM: 7,
+      WATER_GEM: 8,
+      BUTTON: 9,
+      GATE: 10,
+      LEVER: 11,
+      BRIDGE: 12
+    };
+
+    function getSaveData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return getDefaultSaveData();
+        const parsed = JSON.parse(raw);
+        if (!parsed.levels) return getDefaultSaveData();
+        return parsed;
+      } catch (e) {
+        return getDefaultSaveData();
+      }
+    }
+
+    function getDefaultSaveData() {
+      return {
+        unlockedLevel: 1,
+        levels: {
+          1: { cleared: false, bestTime: null, gems: 0, totalGems: 0, rank: null },
+          2: { cleared: false, bestTime: null, gems: 0, totalGems: 0, rank: null },
+          3: { cleared: false, bestTime: null, gems: 0, totalGems: 0, rank: null }
+        }
+      };
+    }
+
+    function saveClearRecord(levelId, timeSec, gems, totalGems, rank) {
+      const data = getSaveData();
+      const current = data.levels[levelId] || { cleared: false, bestTime: null, gems: 0, totalGems: 0, rank: null };
+      const isBest = current.bestTime === null || timeSec < current.bestTime;
+      data.levels[levelId] = {
+        cleared: true,
+        bestTime: isBest ? timeSec : current.bestTime,
+        gems: Math.max(current.gems || 0, gems),
+        totalGems: totalGems,
+        rank: isBest ? rank : (current.rank || rank)
+      };
+
+      if (levelId + 1 <= 3 && data.unlockedLevel < levelId + 1) {
+        data.unlockedLevel = levelId + 1;
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    /* ==========================================================================
+       2. 關卡定義 (第三關伸縮浮台已上移至 Y:9，完美銜接各階梯)
+       ========================================================================== */
+    const LEVEL_CONFIGS = {
+      1: {
+        title: "初心之殿：元素初試",
+        spawn: { fire: { x: 64, y: 448 }, water: { x: 128, y: 448 } },
+        doors: {
+          fire: { x: 23, y: 1 },
+          water: { x: 25, y: 1 }
+        },
+        gates: [
+          { type: 'button', triggerX: 17, triggerY: 14, gateX: 20, gateY: 9, gateH: 6, open: false }
+        ],
+        layout: [
+          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 6, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+          [1, 0, 7, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+          [1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 7, 0, 8, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 10, 0, 0, 0, 1, 1, 1, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 7, 0, 8, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          [1, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ]
+      },
+      2: {
+        title: "幽暗泥沼：神殿拉桿",
+        spawn: { fire: { x: 64, y: 96 }, water: { x: 120, y: 96 } },
+        doors: {
+          fire: { x: 21, y: 3 },
+          water: { x: 24, y: 3 }
+        },
+        gates: [
+          { type: 'lever', triggerX: 13, triggerY: 14, gateX: 18, gateY: 1, gateH: 5, open: false },
+          { type: 'lever', triggerX: 25, triggerY: 9, gateX: 23, gateY: 10, gateH: 5, open: false }
+        ],
+        layout: [
+          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 5, 0, 0, 6, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+          [1, 0, 7, 0, 0, 0, 1, 1, 1, 1, 0, 0, 8, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1],
+          [1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 1],
+          [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 10, 1, 1, 1, 1, 1, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 1],
+          [1, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 8, 0, 0, 0, 1],
+          [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 1, 1, 1, 1, 1, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 1],
+          [1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          [1, 0, 0, 0, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ]
+      },
+      3: {
+        title: "終焉交響：天橋浮台",
+        spawn: { fire: { x: 64, y: 448 }, water: { x: 860, y: 448 } },
+        doors: {
+          fire: { x: 13, y: 1 },
+          water: { x: 15, y: 1 }
+        },
+        // 浮台位置上移至 Y:9，橋樑長度延伸並居中對齊兩側跳台，讓角色跳躍落差完全符合人體工學
+        gates: [
+          { type: 'horizontal_bridge', triggerX: 5, triggerY: 10, startX: 7, startY: 9, length: 7, open: false },
+          { type: 'horizontal_bridge', triggerX: 24, triggerY: 10, startX: 16, startY: 9, length: 7, open: false }
+        ],
+        layout: [
+          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], // Y:1 門
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], // Y:2 門前平台
+          [1, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 1], // Y:3
+          [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 7, 0, 8, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1], // Y:4 鑽石層
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], // Y:5 終點入口踏階
+          [1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1], // Y:6 懸浮登門階梯
+          [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], // Y:7
+          [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1], // Y:8 兩側登橋起跳台
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], // Y:9 (伸縮浮台所在高度)
+          [1, 0, 0, 0, 1, 9, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 9, 1, 0, 0, 0, 1], // Y:10 按鈕本體
+          [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1], // Y:11 按鈕基座台
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], // Y:12
+          [1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1], // Y:13 中繼跳板
+          [1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1], // Y:14 登頂基階
+          [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1], // Y:15 地面屏障層
+          [1, 0, 0, 0, 2, 2, 2, 0, 0, 4, 4, 0, 0, 0, 1, 1, 0, 0, 0, 4, 4, 0, 0, 3, 3, 3, 0, 0, 0, 1], // Y:16 熔岩/水/毒液池
+          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  // Y:17 底面
+        ]
+      }
+    };
+
+    /* ==========================================================================
+       3. 角色類別
+       ========================================================================== */
+    class Character {
+      constructor(type, x, y) {
+        this.type = type;
+        this.width = 24;
+        this.height = 30;
+        this.reset(x, y);
+      }
+
+      reset(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.grounded = false;
+        this.wasGrounded = false;
+        this.dead = false;
+        this.atGoal = false;
+        this.gemsCollected = 0;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.hazardTimer = 0;
+        this.scaleX = 1;
+        this.scaleY = 1;
+        this.alpha = 1;
+        this.doorEnteringProgress = 0;
+      }
+
+      getBounds(offsetX = 0, offsetY = 0) {
+        return {
+          left: this.x + offsetX,
+          right: this.x + this.width + offsetX,
+          top: this.y + offsetY,
+          bottom: this.y + this.height + offsetY
+        };
+      }
+    }
+
+    /* ==========================================================================
+       4. 遊戲核心引擎
+       ========================================================================== */
+    class GameEngine {
+      constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.currentLevelId = 1;
+        this.map = [];
+        this.gates = [];
+
+        this.fireboy = new Character('fire', 0, 0);
+        this.watergirl = new Character('water', 0, 0);
+
+        this.keys = new Set();
+        this.levelStartTime = 0;
+        this.elapsedTime = 0;
+        this.isRunning = false;
+        this.isEnteringDoors = false;
+        this.doorEnterTimer = 0;
+        this.totalGemsInLevel = 0;
+
+        // 優化跳躍彈力手感，提供充裕的起跳制空感
+        this.GRAVITY = 1100;
+        this.MOVE_SPEED = 250;
+        this.JUMP_FORCE = -620; // 充足強勁的跳躍力，確保各台階起跳手感流暢
+        this.JUMP_CUT_MULTIPLIER = 0.65;
+        this.MAX_FALL_SPEED = 700;
+        this.COYOTE_TIME = 0.16;
+        this.JUMP_BUFFER_TIME = 0.16;
+
+        this.lastFrameTime = performance.now();
+        this.accumulator = 0;
+        this.particles = [];
+
+        this.fireDoorOpenProgress = 0;
+        this.waterDoorOpenProgress = 0;
+
+        this.initInputListeners();
+        this.loadLevel(1, false);
+        this.startLoop();
+      }
+
+      initInputListeners() {
+        window.addEventListener('keydown', (e) => {
+          this.keys.add(e.code);
+          if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+            e.preventDefault();
+          }
+          if (e.code === 'KeyR') {
+            this.restartLevel();
+          }
+        });
+
+        window.addEventListener('keyup', (e) => {
+          this.keys.delete(e.code);
+        });
+
+        window.addEventListener('blur', () => {
+          this.keys.clear();
+        });
+      }
+
+      loadLevel(levelId, autoStart = true) {
+        this.currentLevelId = levelId;
+        const config = LEVEL_CONFIGS[levelId];
+        if (!config) return;
+
+        this.map = config.layout.map(row => [...row]);
+        this.gates = JSON.parse(JSON.stringify(config.gates));
+
+        this.fireboy.reset(config.spawn.fire.x, config.spawn.fire.y);
+        this.watergirl.reset(config.spawn.water.x, config.spawn.water.y);
+        this.isEnteringDoors = false;
+        this.doorEnterTimer = 0;
+        this.fireDoorOpenProgress = 0;
+        this.waterDoorOpenProgress = 0;
+
+        this.totalGemsInLevel = 0;
+        let fireGems = 0, waterGems = 0;
+        for (let r = 0; r < this.map.length; r++) {
+          for (let c = 0; c < this.map[r].length; c++) {
+            if (this.map[r][c] === T.FIRE_GEM) { fireGems++; this.totalGemsInLevel++; }
+            if (this.map[r][c] === T.WATER_GEM) { waterGems++; this.totalGemsInLevel++; }
+          }
+        }
+
+        this.updateSwitches(true);
+
+        document.getElementById('fireGemTotal').textContent = fireGems;
+        document.getElementById('waterGemTotal').textContent = waterGems;
+        document.getElementById('fireGemCount').textContent = '0';
+        document.getElementById('waterGemCount').textContent = '0';
+        document.getElementById('levelBadge').textContent = `關卡 ${levelId}: ${config.title}`;
+
+        this.hideModals();
+        this.elapsedTime = 0;
+        this.levelStartTime = performance.now();
+        this.isRunning = autoStart;
+      }
+
+      restartLevel() {
+        this.loadLevel(this.currentLevelId, true);
+      }
+
+      hideModals() {
+        document.getElementById('deathModal').classList.add('hidden');
+        document.getElementById('clearModal').classList.add('hidden');
+        document.getElementById('levelModal').classList.add('hidden');
+        document.getElementById('gameNoticeModal').classList.add('hidden');
+      }
+
+      /* --------------------------------------------------------------------------
+         5. 物理引擎更新
+         -------------------------------------------------------------------------- */
+      updatePhysics(dt) {
+        if (!this.isRunning && !this.isEnteringDoors) return;
+
+        if (this.isEnteringDoors) {
+          this.updateDoorEnteringSequence(dt);
+          this.updateParticles(dt);
+          return;
+        }
+
+        this.handleInput(dt);
+        this.updateSwitches(false);
+        this.updateCharacterPhysics(this.fireboy, dt);
+        this.updateCharacterPhysics(this.watergirl, dt);
+        this.resolveCharacterMutualCollision();
+        this.checkHazardsAndPickups(this.fireboy);
+        this.checkHazardsAndPickups(this.watergirl);
+        this.checkGoalStatus(dt);
+        this.updateParticles(dt);
+      }
+
+      handleInput(dt) {
+        const f = this.fireboy;
+        if (this.keys.has('KeyA')) {
+          f.vx = -this.MOVE_SPEED;
+        } else if (this.keys.has('KeyD')) {
+          f.vx = this.MOVE_SPEED;
+        } else {
+          f.vx = 0;
+        }
+
+        if (this.keys.has('KeyW')) {
+          f.jumpBufferTimer = this.JUMP_BUFFER_TIME;
+        } else {
+          f.jumpBufferTimer = Math.max(0, f.jumpBufferTimer - dt);
+          if (f.vy < 0) f.vy *= Math.pow(this.JUMP_CUT_MULTIPLIER, dt * 60);
+        }
+
+        if (f.jumpBufferTimer > 0 && (f.coyoteTimer > 0 || f.grounded)) {
+          f.vy = this.JUMP_FORCE;
+          f.coyoteTimer = 0;
+          f.jumpBufferTimer = 0;
+          f.grounded = false;
+          f.scaleX = 0.75;
+          f.scaleY = 1.3;
+          this.createJumpParticles(f.x + 12, f.y + 30, '#f97316');
+        }
+
+        const w = this.watergirl;
+        if (this.keys.has('ArrowLeft')) {
+          w.vx = -this.MOVE_SPEED;
+        } else if (this.keys.has('ArrowRight')) {
+          w.vx = this.MOVE_SPEED;
+        } else {
+          w.vx = 0;
+        }
+
+        if (this.keys.has('ArrowUp')) {
+          w.jumpBufferTimer = this.JUMP_BUFFER_TIME;
+        } else {
+          w.jumpBufferTimer = Math.max(0, w.jumpBufferTimer - dt);
+          if (w.vy < 0) w.vy *= Math.pow(this.JUMP_CUT_MULTIPLIER, dt * 60);
+        }
+
+        if (w.jumpBufferTimer > 0 && (w.coyoteTimer > 0 || w.grounded)) {
+          w.vy = this.JUMP_FORCE;
+          w.coyoteTimer = 0;
+          w.jumpBufferTimer = 0;
+          w.grounded = false;
+          w.scaleX = 0.75;
+          w.scaleY = 1.3;
+          this.createJumpParticles(w.x + 12, w.y + 30, '#06b6d4');
+        }
+      }
+
+      updateSwitches(forceUpdate = false) {
+        for (const gate of this.gates) {
+          const tLeft = gate.triggerX * TILE_SIZE;
+          const tRight = (gate.triggerX + 1) * TILE_SIZE;
+          const tTop = gate.triggerY * TILE_SIZE;
+          const tBottom = (gate.triggerY + 1) * TILE_SIZE;
+
+          const isPlayerTouching = (player) => {
+            const b = player.getBounds();
+            return !(b.left > tRight || b.right < tLeft || b.top > tBottom || b.bottom < tTop);
+          };
+
+          const touching = isPlayerTouching(this.fireboy) || isPlayerTouching(this.watergirl);
+          const wasOpen = gate.open;
+
+          if (gate.type === 'lever') {
+            if (touching && !gate.open) {
+              gate.open = true;
+              this.createGlowEffect(gate.triggerX * TILE_SIZE + 16, gate.triggerY * TILE_SIZE + 16, '#60a5fa');
+            }
+          } else {
+            gate.open = touching;
+          }
+
+          if (wasOpen !== gate.open || forceUpdate) {
+            if (gate.type === 'horizontal_bridge') {
+              for (let i = 0; i < gate.length; i++) {
+                const bx = gate.startX + i;
+                const by = gate.startY;
+                if (by < this.map.length && bx < this.map[0].length) {
+                  this.map[by][bx] = gate.open ? T.BRIDGE : T.EMPTY;
+                }
+              }
+            } else {
+              for (let i = 0; i < gate.gateH; i++) {
+                const gy = gate.gateY + i;
+                const gx = gate.gateX;
+                if (gy < this.map.length && gx < this.map[0].length) {
+                  this.map[gy][gx] = gate.open ? T.EMPTY : T.GATE;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      updateCharacterPhysics(player, dt) {
+        player.wasGrounded = player.grounded;
+
+        player.vy += this.GRAVITY * dt;
+        if (player.vy > this.MAX_FALL_SPEED) player.vy = this.MAX_FALL_SPEED;
+
+        player.x += player.vx * dt;
+        this.resolveMapCollisionX(player);
+
+        player.y += player.vy * dt;
+        player.grounded = false;
+        this.resolveMapCollisionY(player);
+
+        this.resolveButtonCollision(player);
+
+        if (player.grounded) {
+          player.coyoteTimer = this.COYOTE_TIME;
+          if (!player.wasGrounded && player.vy >= 0) {
+            player.scaleX = 1.3;
+            player.scaleY = 0.7;
+          }
+        } else {
+          player.coyoteTimer = Math.max(0, player.coyoteTimer - dt);
+        }
+
+        player.scaleX += (1 - player.scaleX) * 12 * dt;
+        player.scaleY += (1 - player.scaleY) * 12 * dt;
+
+        if (player.x < 0) player.x = 0;
+        if (player.x + player.width > CANVAS_WIDTH) player.x = CANVAS_WIDTH - player.width;
+      }
+
+      resolveButtonCollision(player) {
+        const playerBottom = player.y + player.height;
+        const playerLeft = player.x + 2;
+        const playerRight = player.x + player.width - 2;
+
+        for (const gate of this.gates) {
+          if (gate.type === 'lever') continue;
+          const btnX = gate.triggerX * TILE_SIZE;
+          const btnY = gate.triggerY * TILE_SIZE;
+          const btnLeft = btnX + 2;
+          const btnRight = btnX + TILE_SIZE - 2;
+          const btnSurfaceY = btnY + 26;
+
+          if (playerRight > btnLeft && playerLeft < btnRight) {
+            if (player.vy >= 0 && playerBottom >= btnSurfaceY && playerBottom <= btnSurfaceY + 10) {
+              player.y = btnSurfaceY - player.height;
+              player.vy = 0;
+              player.grounded = true;
+              player.coyoteTimer = this.COYOTE_TIME;
+            }
+          }
+        }
+      }
+
+      isSolidTile(tile) {
+        return tile === T.WALL || tile === T.GATE || tile === T.BRIDGE;
+      }
+
+      resolveMapCollisionX(player) {
+        const leftTile = Math.floor(player.x / TILE_SIZE);
+        const rightTile = Math.floor((player.x + player.width) / TILE_SIZE);
+        const topTile = Math.floor(player.y / TILE_SIZE);
+        const bottomTile = Math.floor((player.y + player.height - 1) / TILE_SIZE);
+
+        for (let row = topTile; row <= bottomTile; row++) {
+          for (let col = leftTile; col <= rightTile; col++) {
+            if (row >= 0 && row < this.map.length && col >= 0 && col < this.map[0].length) {
+              if (this.isSolidTile(this.map[row][col])) {
+                if (player.vx > 0) {
+                  player.x = col * TILE_SIZE - player.width;
+                  player.vx = 0;
+                } else if (player.vx < 0) {
+                  player.x = (col + 1) * TILE_SIZE;
+                  player.vx = 0;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      resolveMapCollisionY(player) {
+        const leftTile = Math.floor(player.x / TILE_SIZE);
+        const rightTile = Math.floor((player.x + player.width - 1) / TILE_SIZE);
+        const topTile = Math.floor(player.y / TILE_SIZE);
+        const bottomTile = Math.floor((player.y + player.height) / TILE_SIZE);
+
+        for (let row = topTile; row <= bottomTile; row++) {
+          for (let col = leftTile; col <= rightTile; col++) {
+            if (row >= 0 && row < this.map.length && col >= 0 && col < this.map[0].length) {
+              if (this.isSolidTile(this.map[row][col])) {
+                if (player.vy > 0) {
+                  player.y = row * TILE_SIZE - player.height;
+                  player.vy = 0;
+                  player.grounded = true;
+                } else if (player.vy < 0) {
+                  player.y = (row + 1) * TILE_SIZE;
+                  player.vy = 0;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      resolveCharacterMutualCollision() {
+        const p1 = this.fireboy;
+        const p2 = this.watergirl;
+        const b1 = p1.getBounds();
+        const b2 = p2.getBounds();
+
+        if (this.aabbIntersects(b1, b2)) {
+          if (p1.vy >= 0 && b1.bottom - p1.vy * 0.05 <= b2.top + 12) {
+            p1.y = b2.top - p1.height;
+            p1.vy = 0;
+            p1.grounded = true;
+            p1.coyoteTimer = this.COYOTE_TIME;
+          } else if (p2.vy >= 0 && b2.bottom - p2.vy * 0.05 <= b1.top + 12) {
+            p2.y = b1.top - p2.height;
+            p2.vy = 0;
+            p2.grounded = true;
+            p2.coyoteTimer = this.COYOTE_TIME;
+          }
+        }
+      }
+
+      checkHazardsAndPickups(player) {
+        if (!this.isRunning) return;
+
+        const leftTile = Math.floor((player.x + 4) / TILE_SIZE);
+        const rightTile = Math.floor((player.x + player.width - 4) / TILE_SIZE);
+        const topTile = Math.floor((player.y + 4) / TILE_SIZE);
+        const bottomTile = Math.floor((player.y + player.height - 2) / TILE_SIZE);
+
+        let touchingHazard = false;
+        let deathTitle = "";
+        let deathText = "";
+
+        for (let row = topTile; row <= bottomTile; row++) {
+          for (let col = leftTile; col <= rightTile; col++) {
+            if (row < 0 || row >= this.map.length || col < 0 || col >= this.map[0].length) continue;
+            const tile = this.map[row][col];
+
+            const liquidTop = row * TILE_SIZE + 18;
+            const liquidLeft = col * TILE_SIZE + 4;
+            const liquidRight = (col + 1) * TILE_SIZE - 4;
+            const playerFeet = player.y + player.height;
+            const playerLeft = player.x + 4;
+            const playerRight = player.x + player.width - 4;
+
+            const inLiquid = playerFeet > liquidTop && playerRight > liquidLeft && playerLeft < liquidRight;
+
+            if (inLiquid) {
+              if (tile === T.WATER_LAKE && player.type === 'fire') {
+                touchingHazard = true;
+                deathTitle = "🔥 火人接觸了冰水熄滅了！";
+                deathText = "水火不相容，請小心繞過水池或利用跳台躍過。";
+              } else if (tile === T.FIRE_LAKE && player.type === 'water') {
+                touchingHazard = true;
+                deathTitle = "💧 冰人踏入岩漿蒸發了！";
+                deathText = "岩漿極其高溫，請由火人先行探路或啟動機關。";
+              } else if (tile === T.SLIME_LAKE) {
+                touchingHazard = true;
+                deathTitle = "💀 跌入了劇毒沼澤！";
+                deathText = "綠色毒沼極具腐蝕性，對兩位元素夥伴都是致命的！";
+              }
+            }
+
+            if (tile === T.FIRE_GEM && player.type === 'fire') {
+              this.map[row][col] = T.EMPTY;
+              player.gemsCollected++;
+              document.getElementById('fireGemCount').textContent = player.gemsCollected;
+              this.createGlowEffect(col * TILE_SIZE + 16, row * TILE_SIZE + 16, '#f97316');
+            }
+            if (tile === T.WATER_GEM && player.type === 'water') {
+              this.map[row][col] = T.EMPTY;
+              player.gemsCollected++;
+              document.getElementById('waterGemCount').textContent = player.gemsCollected;
+              this.createGlowEffect(col * TILE_SIZE + 16, row * TILE_SIZE + 16, '#06b6d4');
+            }
+          }
+        }
+
+        if (touchingHazard) {
+          player.hazardTimer += FIXED_DELTA;
+          this.createSteamParticles(player.x + 12, player.y + player.height - 4, player.type === 'fire' ? '#94a3b8' : '#f97316');
+          if (player.hazardTimer >= 0.2) {
+            this.triggerGameOver(deathTitle, deathText);
+          }
+        } else {
+          player.hazardTimer = Math.max(0, player.hazardTimer - FIXED_DELTA * 2);
+        }
+      }
+
+      checkGoalStatus(dt) {
+        const config = LEVEL_CONFIGS[this.currentLevelId];
+        const p1Door = this.isPlayerAtDoor(this.fireboy, config.doors.fire);
+        const p2Door = this.isPlayerAtDoor(this.watergirl, config.doors.water);
+
+        this.fireDoorOpenProgress += ((p1Door ? 1 : 0) - this.fireDoorOpenProgress) * 8 * dt;
+        this.waterDoorOpenProgress += ((p2Door ? 1 : 0) - this.waterDoorOpenProgress) * 8 * dt;
+
+        this.fireboy.atGoal = p1Door;
+        this.watergirl.atGoal = p2Door;
+
+        if (p1Door && p2Door && !this.isEnteringDoors) {
+          this.beginDoorEnteringSequence();
+        }
+      }
+
+      isPlayerAtDoor(player, doorPos) {
+        const doorCenterX = doorPos.x * TILE_SIZE + 16;
+        const doorBottomY = (doorPos.y + 1) * TILE_SIZE;
+        const playerCenterX = player.x + player.width / 2;
+        const playerBottom = player.y + player.height;
+
+        return Math.abs(playerCenterX - doorCenterX) < 18 && Math.abs(playerBottom - doorBottomY) < 12;
+      }
+
+      beginDoorEnteringSequence() {
+        this.isRunning = false;
+        this.isEnteringDoors = true;
+        this.doorEnterTimer = 0;
+      }
+
+      updateDoorEnteringSequence(dt) {
+        this.doorEnterTimer += dt;
+        const progress = Math.min(1, this.doorEnterTimer / 1.3);
+
+        const config = LEVEL_CONFIGS[this.currentLevelId];
+        const fDoorCenter = config.doors.fire.x * TILE_SIZE + 16;
+        const wDoorCenter = config.doors.water.x * TILE_SIZE + 16;
+
+        this.fireboy.x += ((fDoorCenter - this.fireboy.width / 2) - this.fireboy.x) * 6 * dt;
+        this.watergirl.x += ((wDoorCenter - this.watergirl.width / 2) - this.watergirl.x) * 6 * dt;
+
+        const currentScale = Math.max(0, 1 - progress * 0.95);
+        this.fireboy.scaleX = currentScale;
+        this.fireboy.scaleY = currentScale;
+        this.watergirl.scaleX = currentScale;
+        this.watergirl.scaleY = currentScale;
+
+        this.fireboy.alpha = Math.max(0, 1 - progress * 1.1);
+        this.watergirl.alpha = Math.max(0, 1 - progress * 1.1);
+
+        if (Math.random() < 0.3) {
+          this.createGlowEffect(fDoorCenter, config.doors.fire.y * TILE_SIZE + 16, '#f97316');
+          this.createGlowEffect(wDoorCenter, config.doors.water.y * TILE_SIZE + 16, '#06b6d4');
+        }
+
+        if (this.doorEnterTimer >= 1.4) {
+          this.isEnteringDoors = false;
+          this.triggerLevelClear();
+        }
+      }
+
+      aabbIntersects(r1, r2) {
+        return !(r2.left >= r1.right || 
+                 r2.right <= r1.left || 
+                 r2.top >= r1.bottom || 
+                 r2.bottom <= r1.top);
+      }
+
+      triggerGameOver(title, text) {
+        this.isRunning = false;
+        document.getElementById('deathReasonTitle').textContent = title;
+        document.getElementById('deathReasonText').textContent = text;
+        document.getElementById('deathModal').classList.remove('hidden');
+      }
+
+      triggerLevelClear() {
+        this.isRunning = false;
+        const finalTime = (performance.now() - this.levelStartTime) / 1000;
+        const totalGems = this.fireboy.gemsCollected + this.watergirl.gemsCollected;
+
+        let rank = 'B';
+        if (totalGems === this.totalGemsInLevel && finalTime < 38) {
+          rank = 'S';
+        } else if (totalGems >= this.totalGemsInLevel * 0.7 && finalTime < 55) {
+          rank = 'A';
+        }
+
+        saveClearRecord(this.currentLevelId, finalTime, totalGems, this.totalGemsInLevel, rank);
+
+        document.getElementById('clearTimeStat').textContent = this.formatTime(finalTime);
+        document.getElementById('clearGemsStat').textContent = `${totalGems} / ${this.totalGemsInLevel}`;
+        const rankEl = document.getElementById('clearRankStat');
+        rankEl.textContent = rank;
+        rankEl.className = `game-font text-3xl font-black ${rank === 'S' ? 'text-amber-300' : rank === 'A' ? 'text-emerald-400' : 'text-cyan-400'}`;
+
+        document.getElementById('clearModal').classList.remove('hidden');
+      }
+
+      formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(1);
+        return `${mins.toString().padStart(2, '0')}:${secs.padStart(4, '0')}`;
+      }
+
+      createJumpParticles(x, y, color) {
+        for (let i = 0; i < 6; i++) {
+          this.particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 80,
+            vy: (Math.random() - 0.7) * 50,
+            size: Math.random() * 3 + 2,
+            life: 0.35,
+            maxLife: 0.35,
+            color
+          });
+        }
+      }
+
+      createSteamParticles(x, y, color) {
+        for (let i = 0; i < 2; i++) {
+          this.particles.push({
+            x: x + (Math.random() - 0.5) * 12,
+            y: y,
+            vx: (Math.random() - 0.5) * 30,
+            vy: -(Math.random() * 40 + 20),
+            size: Math.random() * 2.5 + 1.5,
+            life: 0.25,
+            maxLife: 0.25,
+            color
+          });
+        }
+      }
+
+      createGlowEffect(x, y, color) {
+        for (let i = 0; i < 10; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const spd = Math.random() * 70 + 20;
+          this.particles.push({
+            x, y,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd,
+            size: Math.random() * 3 + 2,
+            life: 0.45,
+            maxLife: 0.45,
+            color
+          });
+        }
+      }
+
+      updateParticles(dt) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life -= dt;
+          if (p.life <= 0) {
+            this.particles.splice(i, 1);
+          }
+        }
+      }
+
+      /* --------------------------------------------------------------------------
+         6. 畫面渲染
+         -------------------------------------------------------------------------- */
+      render() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // 渲染伸縮橋樑預覽半透明輪廓
+        for (const gate of this.gates) {
+          if (gate.type === 'horizontal_bridge') {
+            const bx = gate.startX * TILE_SIZE;
+            const by = gate.startY * TILE_SIZE;
+            const bw = gate.length * TILE_SIZE;
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.06)';
+            ctx.fillRect(bx, by + 6, bw, 20);
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(bx + 0.5, by + 6.5, bw - 1, 19);
+            ctx.setLineDash([]);
+          }
+        }
+
+        // 渲染地圖瓦片
+        for (let r = 0; r < this.map.length; r++) {
+          for (let c = 0; c < this.map[r].length; c++) {
+            const tile = this.map[r][c];
+            const px = c * TILE_SIZE;
+            const py = r * TILE_SIZE;
+
+            switch (tile) {
+              case T.WALL:
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(px + 0.5, py + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
+                break;
+
+              case T.BRIDGE:
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(px, py + 6, TILE_SIZE, 20);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(px, py + 4, TILE_SIZE, 4);
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(px + 4, py + 14, TILE_SIZE - 8, 5);
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(px + 0.5, py + 4.5, TILE_SIZE - 1, 21);
+                break;
+
+              case T.FIRE_LAKE:
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(px, py + 16, TILE_SIZE, 16);
+                ctx.fillStyle = '#f97316';
+                ctx.fillRect(px + 4, py + 20, TILE_SIZE - 8, 8);
+                break;
+
+              case T.WATER_LAKE:
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(px, py + 16, TILE_SIZE, 16);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(px + 4, py + 20, TILE_SIZE - 8, 8);
+                break;
+
+              case T.SLIME_LAKE:
+                ctx.fillStyle = '#16a34a';
+                ctx.fillRect(px, py + 16, TILE_SIZE, 16);
+                ctx.fillStyle = '#4ade80';
+                ctx.fillRect(px + 4, py + 20, TILE_SIZE - 8, 8);
+                break;
+
+              case T.FIRE_GEM:
+                this.drawGem(ctx, px + 16, py + 16, '#ea580c', '#fdba74');
+                break;
+
+              case T.WATER_GEM:
+                this.drawGem(ctx, px + 16, py + 16, '#0284c7', '#7dd3fc');
+                break;
+
+              case T.BUTTON:
+                const linkedGate = this.gates.find(g => g.triggerX === c && g.triggerY === r);
+                this.drawButton(ctx, px, py, linkedGate ? linkedGate.open : false);
+                break;
+
+              case T.LEVER:
+                const linkedLeverGate = this.gates.find(g => g.triggerX === c && g.triggerY === r);
+                this.drawLever(ctx, px, py, linkedLeverGate ? linkedLeverGate.open : false);
+                break;
+
+              case T.GATE:
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(px + 8, py, 16, TILE_SIZE);
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(px + 12, py, 8, TILE_SIZE);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(px + 14, py + 12, 4, 8);
+                break;
+            }
+          }
+        }
+
+        const config = LEVEL_CONFIGS[this.currentLevelId];
+        if (config && config.doors) {
+          this.drawAnimatedDoor(ctx, config.doors.fire.x * TILE_SIZE, config.doors.fire.y * TILE_SIZE, '#f97316', '🔥', this.fireDoorOpenProgress);
+          this.drawAnimatedDoor(ctx, config.doors.water.x * TILE_SIZE, config.doors.water.y * TILE_SIZE, '#06b6d4', '💧', this.waterDoorOpenProgress);
+        }
+
+        this.drawCharacter(ctx, this.fireboy);
+        this.drawCharacter(ctx, this.watergirl);
+
+        for (const p of this.particles) {
+          ctx.save();
+          ctx.globalAlpha = p.life / p.maxLife;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        if (this.isRunning) {
+          const currentSec = (performance.now() - this.levelStartTime) / 1000;
+          document.getElementById('timerDisplay').textContent = this.formatTime(currentSec);
+        }
+      }
+
+      drawAnimatedDoor(ctx, x, y, color, symbol, openProgress) {
+        ctx.save();
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(x + 2, y, 28, 32);
+
+        if (openProgress > 0.05) {
+          ctx.fillStyle = color;
+          ctx.globalAlpha = openProgress * 0.35;
+          ctx.fillRect(x + 4, y + 2, 24, 28);
+          ctx.globalAlpha = 1;
+        }
+
+        const slideWidth = (14) * (1 - openProgress);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(x + 2, y, slideWidth, 32);
+        ctx.fillRect(x + 30 - slideWidth, y, slideWidth, 32);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = openProgress > 0.5 ? 3 : 2;
+        if (openProgress > 0.1) {
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 10 * openProgress;
+        }
+        ctx.strokeRect(x + 3, y + 1, 26, 30);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = Math.max(0.2, 1 - openProgress * 0.5);
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(symbol, x + 16, y + 21 - openProgress * 4);
+
+        ctx.restore();
+      }
+
+      drawGem(ctx, x, y, outerColor, innerColor) {
+        const t = performance.now() / 300;
+        const bob = Math.sin(t) * 3;
+        const cy = y + bob;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, cy - 8);
+        ctx.lineTo(x + 7, cy);
+        ctx.lineTo(x, cy + 8);
+        ctx.lineTo(x - 7, cy);
+        ctx.closePath();
+        ctx.fillStyle = outerColor;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(x, cy - 4);
+        ctx.lineTo(x + 3.5, cy);
+        ctx.lineTo(x, cy + 4);
+        ctx.lineTo(x - 3.5, cy);
+        ctx.closePath();
+        ctx.fillStyle = innerColor;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      drawButton(ctx, x, y, isPressed) {
+        const surfaceY = y + 26;
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(x + 2, y + 28, 28, 4);
+
+        if (isPressed) {
+          ctx.fillStyle = '#fde047';
+          ctx.fillRect(x + 4, surfaceY, 24, 4);
+          ctx.shadowColor = '#facc15';
+          ctx.shadowBlur = 10;
+        } else {
+          ctx.fillStyle = '#eab308';
+          ctx.fillRect(x + 4, y + 20, 24, 8);
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      drawLever(ctx, x, y, isOpen) {
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(x + 6, y + 24, 20, 8);
+        ctx.strokeStyle = '#334155';
+        ctx.strokeRect(x + 6, y + 24, 20, 8);
+
+        ctx.save();
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = isOpen ? '#38bdf8' : '#94a3b8';
+
+        ctx.beginPath();
+        if (isOpen) {
+          ctx.moveTo(x + 16, y + 26);
+          ctx.lineTo(x + 25, y + 10);
+        } else {
+          ctx.moveTo(x + 16, y + 26);
+          ctx.lineTo(x + 8, y + 10);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = isOpen ? '#38bdf8' : '#ef4444';
+        if (isOpen) {
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 8;
+        }
+        ctx.beginPath();
+        ctx.arc(isOpen ? x + 25 : x + 8, y + 10, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      drawCharacter(ctx, p) {
+        if (p.alpha <= 0) return;
+
+        const isFire = p.type === 'fire';
+        const primaryColor = isFire ? '#f97316' : '#06b6d4';
+        const glowColor = isFire ? 'rgba(249, 115, 22, 0.4)' : 'rgba(6, 182, 212, 0.4)';
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        const centerX = p.x + p.width / 2;
+        const bottomY = p.y + p.height;
+        ctx.translate(centerX, bottomY);
+        ctx.scale(p.scaleX, p.scaleY);
+        ctx.translate(-centerX, -bottomY);
+
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 10;
+
+        ctx.fillStyle = primaryColor;
+        ctx.beginPath();
+        ctx.roundRect(p.x, p.y + 4, p.width, p.height - 4, [6, 6, 4, 4]);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(p.x + 3, p.y + 6);
+        ctx.quadraticCurveTo(p.x + p.width / 2, p.y - 6, p.x + p.width - 3, p.y + 6);
+        ctx.fillStyle = primaryColor;
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        const eyeOffsetX = p.vx > 0 ? 3 : p.vx < 0 ? -3 : 0;
+        ctx.fillRect(p.x + 6 + eyeOffsetX, p.y + 11, 4, 5);
+        ctx.fillRect(p.x + 14 + eyeOffsetX, p.y + 11, 4, 5);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(p.x + 7 + eyeOffsetX, p.y + 13, 2, 3);
+        ctx.fillRect(p.x + 15 + eyeOffsetX, p.y + 13, 2, 3);
+
+        if (p.hazardTimer > 0) {
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(p.x - 2, p.y - 2, p.width + 4, p.height + 4);
+        }
+
+        ctx.restore();
+      }
+
+      startLoop() {
+        const step = (currentTime) => {
+          let delta = (currentTime - this.lastFrameTime) / 1000;
+          this.lastFrameTime = currentTime;
+
+          if (delta > 0.1) delta = 0.1;
+
+          this.accumulator += delta;
+          while (this.accumulator >= FIXED_DELTA) {
+            this.updatePhysics(FIXED_DELTA);
+            this.accumulator -= FIXED_DELTA;
+          }
+
+          this.render();
+          requestAnimationFrame(step);
+        };
+
+        requestAnimationFrame(step);
+      }
+    }
+
+    /* ==========================================================================
+       7. UI 與事件綁定
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      const engine = new GameEngine();
+
+      const rulesModal = document.getElementById('rulesModal');
+      const btnStartGame = document.getElementById('btnStartGame');
+      const btnRules = document.getElementById('btnRules');
+
+      btnStartGame.onclick = () => {
+        rulesModal.classList.add('hidden');
+        engine.isRunning = true;
+        engine.levelStartTime = performance.now();
+      };
+
+      btnRules.onclick = () => {
+        engine.isRunning = false;
+        rulesModal.classList.remove('hidden');
+      };
+
+      function showNotice(title, msg, onOk = null) {
+        const modal = document.getElementById('gameNoticeModal');
+        document.getElementById('noticeTitle').textContent = title;
+        document.getElementById('noticeMsg').textContent = msg;
+        const btnOk = document.getElementById('btnNoticeOk');
+        btnOk.onclick = () => {
+          modal.classList.add('hidden');
+          if (onOk) onOk();
+        };
+        modal.classList.remove('hidden');
+      }
+
+      document.getElementById('btnRestart').onclick = () => engine.restartLevel();
+      document.getElementById('btnDeathRetry').onclick = () => engine.restartLevel();
+      document.getElementById('btnClearReplay').onclick = () => engine.restartLevel();
+
+      document.getElementById('btnNextLevel').onclick = () => {
+        if (engine.currentLevelId < 3) {
+          engine.loadLevel(engine.currentLevelId + 1, true);
+        } else {
+          showNotice("🎉 通關大圓滿", "恭喜通過神殿所有挑戰關卡！你與夥伴擁有完美的默契！", () => {
+            engine.loadLevel(1, true);
+          });
+        }
+      };
+
+      const levelModal = document.getElementById('levelModal');
+      const btnLevelSelect = document.getElementById('btnLevelSelect');
+      const btnCloseLevelModal = document.getElementById('btnCloseLevelModal');
+      const levelCardList = document.getElementById('levelCardList');
+
+      function renderLevelCards() {
+        const data = getSaveData();
+        levelCardList.innerHTML = '';
+
+        for (let i = 1; i <= 3; i++) {
+          const isUnlocked = i <= data.unlockedLevel;
+          const info = data.levels[i] || {};
+          const card = document.createElement('div');
+
+          card.className = `p-4 rounded-xl border flex flex-col justify-between transition ${
+            isUnlocked 
+              ? 'bg-slate-800 border-slate-600 hover:border-amber-400 cursor-pointer' 
+              : 'bg-slate-900/50 border-slate-800 opacity-50 cursor-not-allowed'
+          }`;
+
+          card.innerHTML = `
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-sm text-slate-200">關卡 ${i}</span>
+                ${info.cleared ? `<span class="game-font font-black text-xs px-2 py-0.5 rounded ${info.rank === 'S' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}">${info.rank} 級</span>` : ''}
+              </div>
+              <p class="text-xs text-slate-400 mb-2">${LEVEL_CONFIGS[i].title}</p>
+            </div>
+            <div class="text-[11px] text-slate-400 space-y-1">
+              <div>最佳時間: <span class="game-font text-slate-200">${info.bestTime ? engine.formatTime(info.bestTime) : '--:--'}</span></div>
+              <div>最高寶石: <span class="text-amber-300 font-bold">${info.gems || 0}</span> / ${info.totalGems || '--'}</div>
+            </div>
+            <button class="mt-3 w-full py-1.5 rounded text-xs font-bold ${isUnlocked ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-700 text-slate-500 pointer-events-none'}">
+              ${isUnlocked ? (info.cleared ? '再次挑戰' : '開始冒險') : '尚未解鎖'}
+            </button>
+          `;
+
+          if (isUnlocked) {
+            card.onclick = () => {
+              engine.loadLevel(i, true);
+              levelModal.classList.add('hidden');
+            };
+          }
+
+          levelCardList.appendChild(card);
+        }
+      }
+
+      btnLevelSelect.onclick = () => {
+        renderLevelCards();
+        levelModal.classList.remove('hidden');
+      };
+
+      btnCloseLevelModal.onclick = () => {
+        levelModal.classList.add('hidden');
+      };
+
+      document.getElementById('btnResetAllSaves').onclick = () => {
+        showNotice("重置進度確認", "已為您清空瀏覽器中的所有通關成績與評級紀錄。", () => {
+          localStorage.removeItem(STORAGE_KEY);
+          renderLevelCards();
+          engine.loadLevel(1, true);
+        });
+      };
+    });
+  </script>
+</body>
+</html>
